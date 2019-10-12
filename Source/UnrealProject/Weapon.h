@@ -68,6 +68,7 @@ public:
 	virtual void OnOverlapEnd(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex) override;
 
 	void Equip(class AMainCharacter* Char);
+	void Unequip(class AMainCharacter* Char);
 
 	FORCEINLINE EWeaponState GetWeaponState() { return WeaponState; }
 	FORCEINLINE void SetWeaponState(EWeaponState State) { WeaponState = State; }

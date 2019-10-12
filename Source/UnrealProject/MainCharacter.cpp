@@ -67,6 +67,7 @@ AMainCharacter::AMainCharacter()
 
 	Coins = 0.f;
 
+	WalkingSpeed = 250.f;
 	RunningSpeed = 650.f;
 	SprintingSpeed = 950.f;
 
@@ -80,6 +81,7 @@ AMainCharacter::AMainCharacter()
 	bAttackDown = false;
 	bEquipDown = false;
 	bPauseDown = false;
+	bCrouchDown = false;
 
 	Section = 0;
 
@@ -230,6 +232,9 @@ void AMainCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompo
 
 	PlayerInputComponent->BindAction(TEXT("Equip"), IE_Pressed, this, &AMainCharacter::EquipDown);
 	PlayerInputComponent->BindAction(TEXT("Equip"), IE_Released, this, &AMainCharacter::EquipUp);
+
+	PlayerInputComponent->BindAction(TEXT("Crouch"), IE_Pressed, this, &AMainCharacter::CrouchDown);
+	PlayerInputComponent->BindAction(TEXT("Crouch"), IE_Released, this, &AMainCharacter::CrouchUp);
 	
 	PlayerInputComponent->BindAxis(TEXT("MoveForward"), this, &AMainCharacter::MoveForward);
 	PlayerInputComponent->BindAxis(TEXT("MoveRight"), this, &AMainCharacter::MoveRight);
@@ -444,7 +449,14 @@ void AMainCharacter::SetMovementStatus(EMovementStatus Status)
 	}
 	else
 	{
-		GetCharacterMovement()->MaxWalkSpeed = RunningSpeed;
+		if (bCrouchDown)
+		{
+			GetCharacterMovement()->MaxWalkSpeed = WalkingSpeed;
+		}
+		else
+		{
+			GetCharacterMovement()->MaxWalkSpeed = RunningSpeed;
+		}
 	}
 }
 
@@ -469,6 +481,11 @@ void AMainCharacter::AttackDown()
 	{
 		Attack();
 	}
+	else
+	{
+		if (UnequippedWeapon)
+			UnequippedWeapon->Equip(this);
+	}
 }
 
 void AMainCharacter::AttackUp()
@@ -492,11 +509,32 @@ void AMainCharacter::EquipDown()
 			SetActiveOverlappingItem(nullptr);
 		}
 	}
+	else
+	{
+		UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+		if (AnimInstance && CombatMontage)
+		{
+			AnimInstance->Montage_Play(CombatMontage, 2.f);
+			AnimInstance->Montage_JumpToSection(FName("Equip"), CombatMontage);
+		}
+	}
 }
 
 void AMainCharacter::EquipUp()
 {
 	bEquipDown = false;
+}
+
+void AMainCharacter::ToggleEquip()
+{
+	if (EquippedWeapon)
+	{
+		EquippedWeapon->Unequip(this);
+	}
+	else if (UnequippedWeapon)
+	{
+		UnequippedWeapon->Equip(this);
+	}
 }
 
 void AMainCharacter::PauseDown()
@@ -514,6 +552,16 @@ void AMainCharacter::PauseUp()
 	bPauseDown = false;
 }
 
+void AMainCharacter::CrouchDown()
+{
+	bCrouchDown = !bCrouchDown;
+}
+
+void AMainCharacter::CrouchUp()
+{
+	//bCrouchDown = false;
+}
+
 void AMainCharacter::ShowPickupLocations()
 {
 	for (int32 i = 0; i < PickupLocations.Num(); i++)
@@ -527,7 +575,7 @@ void AMainCharacter::SetEquippedWeapon(AWeapon* WeaponToSet)
 {
 	if (EquippedWeapon)
 	{
-		EquippedWeapon->Destroy();
+		UnequippedWeapon = EquippedWeapon;
 	}
 	EquippedWeapon = WeaponToSet;
 }

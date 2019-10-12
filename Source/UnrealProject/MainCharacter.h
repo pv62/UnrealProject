@@ -40,6 +40,7 @@ public:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Items")
 	class AWeapon* EquippedWeapon;
+	AWeapon* UnequippedWeapon;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Items")
 	class AItem* ActiveOverlappingItem;
@@ -49,6 +50,8 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Enums")
 	EStaminaStatus StaminaStatus;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
+	float WalkingSpeed;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
 	float RunningSpeed;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
@@ -86,6 +89,10 @@ public:
 
 	/** Keyboard Esc/Keyboard Tab/Gamepad Start Button (Special Right Button) */
 	bool bPauseDown;
+
+	/** Keyboard C/Gamepad Right Face Button */
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Movement")
+	bool bCrouchDown;
 
 	/** Camera Boom positioning the camera behind the player */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera", meta = (AllowPrivateAccess = "true"))
@@ -237,8 +244,14 @@ public:
 	void EquipDown();
 	void EquipUp();
 
+	UFUNCTION(BlueprintCallable)
+	void ToggleEquip();
+
 	void PauseDown();
 	void PauseUp();
+
+	void CrouchDown();
+	void CrouchUp();
 
 	UFUNCTION(BlueprintCallable)
 	void ShowPickupLocations();
