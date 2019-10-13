@@ -84,6 +84,7 @@ AMainCharacter::AMainCharacter()
 	bCrouchDown = false;
 
 	Section = 0;
+	NumOfSections = 2;
 
 	bMovingForward = false;
 	bMovingRight = false;
@@ -357,21 +358,11 @@ void AMainCharacter::Attack()
 		UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
 		if (AnimInstance && CombatMontage)
 		{
-			switch (Section)
-			{
-				case 0:
-					AnimInstance->Montage_Play(CombatMontage, 2.2f);
-					AnimInstance->Montage_JumpToSection(FName("Attack_1"), CombatMontage);
-					Section = 1;
-					break;
-				case 1:
-					AnimInstance->Montage_Play(CombatMontage, 1.8f);
-					AnimInstance->Montage_JumpToSection(FName("Attack_2"), CombatMontage);
-					Section = 0;
-					break;
-				default:
-					break;
-			}
+			int32 CurrentSection = (Section % NumOfSections) + 1;
+			FString SectionName(FString::Printf(TEXT("Attack_%d"), CurrentSection));
+			AnimInstance->Montage_Play(CombatMontage, 2.f);
+			AnimInstance->Montage_JumpToSection(FName(*SectionName), CombatMontage);
+			++Section;
 		}
 	}	
 }
@@ -484,7 +475,15 @@ void AMainCharacter::AttackDown()
 	else
 	{
 		if (UnequippedWeapon)
-			UnequippedWeapon->Equip(this);
+		{
+			UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+			if (AnimInstance && EquipMontage)
+			{
+				AnimInstance->Montage_Play(EquipMontage, 2.f);
+				AnimInstance->Montage_JumpToSection(FName("Unequip"), EquipMontage);
+			}
+			Attack();
+		}
 	}
 }
 
@@ -511,12 +510,7 @@ void AMainCharacter::EquipDown()
 	}
 	else
 	{
-		UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
-		if (AnimInstance && CombatMontage)
-		{
-			AnimInstance->Montage_Play(CombatMontage, 2.f);
-			AnimInstance->Montage_JumpToSection(FName("Equip"), CombatMontage);
-		}
+		PlayEquipMontage();		
 	}
 }
 
@@ -525,15 +519,35 @@ void AMainCharacter::EquipUp()
 	bEquipDown = false;
 }
 
-void AMainCharacter::ToggleEquip()
+void AMainCharacter::EquipWeapon()
+{
+	EquippedWeapon->Unequip(this);
+}
+
+void AMainCharacter::UnequipWeapon()
+{
+	UnequippedWeapon->Equip(this);
+}
+
+void AMainCharacter::PlayEquipMontage()
 {
 	if (EquippedWeapon)
 	{
-		EquippedWeapon->Unequip(this);
+		UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+		if (AnimInstance && EquipMontage)
+		{
+			AnimInstance->Montage_Play(EquipMontage, 2.f);
+			AnimInstance->Montage_JumpToSection(FName("Equip"), EquipMontage);
+		}
 	}
 	else if (UnequippedWeapon)
 	{
-		UnequippedWeapon->Equip(this);
+		UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+		if (AnimInstance && EquipMontage)
+		{
+			AnimInstance->Montage_Play(EquipMontage, 2.f);
+			AnimInstance->Montage_JumpToSection(FName("Unequip"), EquipMontage);
+		}
 	}
 }
 

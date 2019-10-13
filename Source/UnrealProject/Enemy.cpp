@@ -322,9 +322,11 @@ void AEnemy::Attack()
 			UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
 			if (AnimInstance && CombatMontage)
 			{
-				FString SectionName(FString::Printf(TEXT("Attack_%d"), Section));
+				int32 CurrentSection = (Section % NumOfSections) + 1;
+				FString SectionName(FString::Printf(TEXT("Attack_%d"), CurrentSection));
 				AnimInstance->Montage_Play(CombatMontage, AnimSpeed);
 				AnimInstance->Montage_JumpToSection(FName(*SectionName), CombatMontage);
+				++Section;
 			}
 		}
 	}
@@ -333,14 +335,6 @@ void AEnemy::Attack()
 void AEnemy::AttackEnd()
 {
 	bAttacking = false;
-	if (Section >= NumOfSections)
-	{
-		Section = 0;
-	}
-	else
-	{
-		Section++;
-	}
 	if (bOverlappingCombatSphere)
 	{
 		if (Section == 0)

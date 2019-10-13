@@ -130,7 +130,12 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Anims")
 	class UAnimMontage* CombatMontage;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Anims")
+	class UAnimMontage* EquipMontage;
+
 	int32 Section;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Anims")
+	int32 NumOfSections;
 
 	bool bMovingForward;
 	bool bMovingRight;
@@ -245,7 +250,11 @@ public:
 	void EquipUp();
 
 	UFUNCTION(BlueprintCallable)
-	void ToggleEquip();
+	void EquipWeapon();
+	UFUNCTION(BlueprintCallable)
+	void UnequipWeapon();
+
+	void PlayEquipMontage();
 
 	void PauseDown();
 	void PauseUp();
