@@ -84,13 +84,17 @@ public:
 	/** Left Mouse Button/Keyboard X/Gamepad Left Face Button */
 	bool bAttackDown;
 
+	/** Right Mouse Button/Keyboard B/Gamepad Right Face Button */
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Movement")
+	bool bBlockDown;
+
 	/** Keyboard E/Gamepad Top Face Button */
 	bool bEquipDown;
 
 	/** Keyboard Esc/Keyboard Tab/Gamepad Start Button (Special Right Button) */
 	bool bPauseDown;
 
-	/** Keyboard C/Gamepad Right Face Button */
+	/** Keyboard C/Gamepad Left Trigger */
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Movement")
 	bool bCrouchDown;
 
@@ -127,11 +131,14 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Anims")
 	bool bAttacking;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Anims")
+	bool bInCombo;
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Anims")
 	class UAnimMontage* CombatMontage;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Anims")
-	class UAnimMontage* EquipMontage;
+	class UAnimMontage* UpperBodyMontage;
 
 	int32 Section;
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Anims")
@@ -212,10 +219,15 @@ public:
 	FORCEINLINE class USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
 	FORCEINLINE class UCameraComponent* GetFollowCamera() const { return FollowCamera; }
 
+	void PlayAttackAnimation();
 	void Attack();
+	UFUNCTION(BlueprintCallable)
+	void Combo();
 
 	UFUNCTION(BlueprintCallable)
 	void AttackEnd();
+	UFUNCTION(BlueprintCallable)
+	void ComboEnd();
 
 	UFUNCTION(BlueprintCallable)
 	void GainCoins(int32 Amount);
@@ -245,6 +257,9 @@ public:
 
 	void AttackDown();
 	void AttackUp();
+
+	void BlockDown();
+	void BlockUp();
 
 	void EquipDown();
 	void EquipUp();

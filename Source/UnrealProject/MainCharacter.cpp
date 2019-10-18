@@ -82,6 +82,7 @@ AMainCharacter::AMainCharacter()
 	bEquipDown = false;
 	bPauseDown = false;
 	bCrouchDown = false;
+	bBlockDown = false;
 
 	Section = 0;
 	NumOfSections = 2;
@@ -104,7 +105,7 @@ void AMainCharacter::BeginPlay()
 	FString MapName = GetWorld()->GetMapName();
 	MapName.RemoveFromStart(GetWorld()->StreamingLevelsPrefix);
 
-	LoadGameNoSwitch();
+	//LoadGameNoSwitch();
 	if (MainPlayerController)
 	{
 		MainPlayerController->GameModeOnly();
@@ -236,6 +237,9 @@ void AMainCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompo
 
 	PlayerInputComponent->BindAction(TEXT("Crouch"), IE_Pressed, this, &AMainCharacter::CrouchDown);
 	PlayerInputComponent->BindAction(TEXT("Crouch"), IE_Released, this, &AMainCharacter::CrouchUp);
+
+	PlayerInputComponent->BindAction(TEXT("Block"), IE_Pressed, this, &AMainCharacter::BlockDown);
+	PlayerInputComponent->BindAction(TEXT("Block"), IE_Released, this, &AMainCharacter::BlockUp);
 	
 	PlayerInputComponent->BindAxis(TEXT("MoveForward"), this, &AMainCharacter::MoveForward);
 	PlayerInputComponent->BindAxis(TEXT("MoveRight"), this, &AMainCharacter::MoveRight);
@@ -348,33 +352,63 @@ void AMainCharacter::FootStep(bool IsLeft)
 	}
 }
 
+void AMainCharacter::PlayAttackAnimation()
+{
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	if (AnimInstance && CombatMontage)
+	{
+		int32 CurrentSection = (Section % NumOfSections) + 1;
+		FString SectionName(FString::Printf(TEXT("Attack_%d"), CurrentSection));
+		AnimInstance->Montage_Play(CombatMontage, 2.f);
+		AnimInstance->Montage_JumpToSection(FName(*SectionName), CombatMontage);
+	}
+}
+
 void AMainCharacter::Attack()
 {
-	if (!bAttacking && MovementStatus != EMovementStatus::EMS_Dead)
+	if (MovementStatus != EMovementStatus::EMS_Dead)
 	{
-		bAttacking = true;
-		SetInterpToEnemy(true);
-
-		UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
-		if (AnimInstance && CombatMontage)
+		if (!bAttacking)
 		{
-			int32 CurrentSection = (Section % NumOfSections) + 1;
-			FString SectionName(FString::Printf(TEXT("Attack_%d"), CurrentSection));
-			AnimInstance->Montage_Play(CombatMontage, 2.f);
-			AnimInstance->Montage_JumpToSection(FName(*SectionName), CombatMontage);
+			bAttacking = true;
+			SetInterpToEnemy(true);
+
+			PlayAttackAnimation();
+		}
+		else
+		{
+			bInCombo = true;
 			++Section;
 		}
 	}	
+}
+
+void AMainCharacter::Combo()
+{
+	if (bInCombo)
+	{
+		bInCombo = false;
+		PlayAttackAnimation();
+	}
 }
 
 void AMainCharacter::AttackEnd()
 {
 	bAttacking = false;
 	SetInterpToEnemy(false);
-	if (bAttackDown)
+	if (bAttackDown && bInCombo)
 	{
+		++Section;
 		Attack();
 	}
+}
+
+void AMainCharacter::ComboEnd()
+{
+	Section = 0;
+	bInCombo = false;
+	bAttacking = false;
+	SetInterpToEnemy(false);
 }
 
 void AMainCharacter::GainCoins(int32 Amount)
@@ -477,12 +511,11 @@ void AMainCharacter::AttackDown()
 		if (UnequippedWeapon)
 		{
 			UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
-			if (AnimInstance && EquipMontage)
+			if (AnimInstance && UpperBodyMontage)
 			{
-				AnimInstance->Montage_Play(EquipMontage, 2.f);
-				AnimInstance->Montage_JumpToSection(FName("Unequip"), EquipMontage);
+				AnimInstance->Montage_Play(UpperBodyMontage, 1.f);
+				AnimInstance->Montage_JumpToSection(FName("Equip"), UpperBodyMontage);
 			}
-			Attack();
 		}
 	}
 }
@@ -490,6 +523,30 @@ void AMainCharacter::AttackDown()
 void AMainCharacter::AttackUp()
 {
 	bAttackDown = false;
+}
+
+void AMainCharacter::BlockDown()
+{
+	if (EquippedWeapon)
+	{
+		bBlockDown = true;
+		UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+		if (AnimInstance && UpperBodyMontage)
+		{
+			AnimInstance->Montage_Play(UpperBodyMontage, 1.f);
+			AnimInstance->Montage_JumpToSection(FName("Block"), UpperBodyMontage);
+		}
+	}	
+}
+
+void AMainCharacter::BlockUp()
+{
+	bBlockDown = false;
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	if (AnimInstance && UpperBodyMontage)
+	{
+		AnimInstance->Montage_Stop(0.25f, UpperBodyMontage);
+	}
 }
 
 void AMainCharacter::EquipDown()
@@ -521,12 +578,12 @@ void AMainCharacter::EquipUp()
 
 void AMainCharacter::EquipWeapon()
 {
-	EquippedWeapon->Unequip(this);
+	UnequippedWeapon->Equip(this);
 }
 
 void AMainCharacter::UnequipWeapon()
 {
-	UnequippedWeapon->Equip(this);
+	EquippedWeapon->Unequip(this);
 }
 
 void AMainCharacter::PlayEquipMontage()
@@ -534,19 +591,19 @@ void AMainCharacter::PlayEquipMontage()
 	if (EquippedWeapon)
 	{
 		UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
-		if (AnimInstance && EquipMontage)
+		if (AnimInstance && UpperBodyMontage)
 		{
-			AnimInstance->Montage_Play(EquipMontage, 2.f);
-			AnimInstance->Montage_JumpToSection(FName("Equip"), EquipMontage);
+			AnimInstance->Montage_Play(UpperBodyMontage, 1.f);
+			AnimInstance->Montage_JumpToSection(FName("Unequip"), UpperBodyMontage);
 		}
 	}
 	else if (UnequippedWeapon)
 	{
 		UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
-		if (AnimInstance && EquipMontage)
+		if (AnimInstance && UpperBodyMontage)
 		{
-			AnimInstance->Montage_Play(EquipMontage, 2.f);
-			AnimInstance->Montage_JumpToSection(FName("Unequip"), EquipMontage);
+			AnimInstance->Montage_Play(UpperBodyMontage, 1.f);
+			AnimInstance->Montage_JumpToSection(FName("Equip"), UpperBodyMontage);
 		}
 	}
 }
@@ -668,6 +725,10 @@ void AMainCharacter::SaveGame()
 	if (EquippedWeapon)
 	{
 		SaveGameInstance->CharacterStats.WeaponName = EquippedWeapon->Name;
+	}
+	if (UnequippedWeapon)
+	{
+		SaveGameInstance->CharacterStats.WeaponName = UnequippedWeapon->Name;
 	}
 
 	FString MapName = GetWorld()->GetMapName();
